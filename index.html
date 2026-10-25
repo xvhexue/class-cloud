@@ -3,20 +3,20 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>破冰分组-优势词云组队</title>
-<!-- 字节国内CDN，国内访问稳定 -->
-<script src="https://lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="https://cdn.bootcdn.net/ajax/libs/supabase-js/2.33.1/supabase.min.js"></script>
+<title>破冰分组-直播岗位优势词云组队</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:"Microsoft Yahei",sans-serif}
 body{background:#6b28bc;color:#fff;height:100vh;overflow:hidden;display:flex}
 .left-panel{width:220px;background:rgba(0,0,0,0.2);padding:24px;display:flex;flex-direction:column;gap:16px}
 #qrcode{width:160px;height:160px;background:#fff;border-radius:12px;margin:0 auto;display:flex;align-items:center;justify-content:center;color:#333;font-size:12px}
+#qrcode canvas{width:100%;height:100%;border-radius:12px}
 .tip-text{text-align:center;font-size:14px;line-height:1.6}
 .btn{border:none;border-radius:8px;padding:14px 8px;font-size:16px;cursor:pointer;width:100%}
 .btn-yellow{background:#ffd32a;color:#000;font-weight:bold}
 .btn-purple{background:#804fc2;color:#fff}
-.right-area{flex:1;position:relative;padding:20px}
+.right-area{flex:1;position:relative;padding:20px;overflow:auto}
 .form-page{position:absolute;top:0;left:0;width:100%;height:100%;background:#fff;color:#222;padding:30px;overflow:auto}
 .form-title{font-size:24px;margin-bottom:20px;text-align:center;color:#6b28bc}
 .form-item{margin:16px 0}
@@ -43,9 +43,9 @@ input,select{width:100%;padding:10px;font-size:16px;border:1px solid #ccc;border
 </div>
 <div class="right-area" id="wordCloud"></div>
 
-<!-- 表单页面，扫码打开 -->
+<!-- 手机扫码表单 -->
 <div class="form-page" id="formPage" style="display:none">
-    <h2 class="form-title">优势资源收集表</h2>
+    <h2 class="form-title">直播岗位优势收集表</h2>
     <div class="form-item">
         <label>姓名</label>
         <input type="text" id="name" placeholder="请输入你的姓名">
@@ -54,45 +54,36 @@ input,select{width:100%;padding:10px;font-size:16px;border:1px solid #ccc;border
         <label>优势关键词1</label>
         <select id="k1">
             <option value="">请选择</option>
-            <option value="口才好">口才好</option>
-            <option value="剪辑">剪辑</option>
-            <option value="拍摄">拍摄</option>
-            <option value="文案">文案</option>
-            <option value="运营">运营</option>
-            <option value="销售">销售</option>
-            <option value="耐心细心">耐心细心</option>
-            <option value="擅长沟通">擅长沟通</option>
-            <option value="懂产品">懂产品</option>
+            <option value="主播（表达感染力强）">主播（表达感染力强）</option>
+            <option value="中控（反应快、盯后台）">中控（反应快、盯后台）</option>
+            <option value="场控（控节奏、暖场）">场控（控节奏、暖场）</option>
+            <option value="剪辑（会剪视频）">剪辑（会剪视频）</option>
+            <option value="运营（懂流量、做策划）">运营（懂流量、做策划）</option>
+            <option value="选品（熟悉产品）">选品（熟悉产品）</option>
         </select>
     </div>
     <div class="form-item">
         <label>优势关键词2</label>
         <select id="k2">
             <option value="">请选择</option>
-            <option value="口才好">口才好</option>
-            <option value="剪辑">剪辑</option>
-            <option value="拍摄">拍摄</option>
-            <option value="文案">文案</option>
-            <option value="运营">运营</option>
-            <option value="销售">销售</option>
-            <option value="耐心细心">耐心细心</option>
-            <option value="擅长沟通">擅长沟通</option>
-            <option value="懂产品">懂产品</option>
+            <option value="主播（表达感染力强）">主播（表达感染力强）</option>
+            <option value="中控（反应快、盯后台）">中控（反应快、盯后台）</option>
+            <option value="场控（控节奏、暖场）">场控（控节奏、暖场）</option>
+            <option value="剪辑（会剪视频）">剪辑（会剪视频）</option>
+            <option value="运营（懂流量、做策划）">运营（懂流量、做策划）</option>
+            <option value="选品（熟悉产品）">选品（熟悉产品）</option>
         </select>
     </div>
     <div class="form-item">
         <label>优势关键词3</label>
         <select id="k3">
             <option value="">请选择</option>
-            <option value="口才好">口才好</option>
-            <option value="剪辑">剪辑</option>
-            <option value="拍摄">拍摄</option>
-            <option value="文案">文案</option>
-            <option value="运营">运营</option>
-            <option value="销售">销售</option>
-            <option value="耐心细心">耐心细心</option>
-            <option value="擅长沟通">擅长沟通</option>
-            <option value="懂产品">懂产品</option>
+            <option value="主播（表达感染力强）">主播（表达感染力强）</option>
+            <option value="中控（反应快、盯后台）">中控（反应快、盯后台）</option>
+            <option value="场控（控节奏、暖场）">场控（控节奏、暖场）</option>
+            <option value="剪辑（会剪视频）">剪辑（会剪视频）</option>
+            <option value="运营（懂流量、做策划）">运营（懂流量、做策划）</option>
+            <option value="选品（熟悉产品）">选品（熟悉产品）</option>
         </select>
     </div>
     <button id="submitBtn">提交我的优势</button>
@@ -105,21 +96,20 @@ const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let viewMode = "cloud";
 
-// 优化设备判断：宽度小于768px判定手机表单
+// 设备判断：宽度小于768px 手机表单
 const isMobile = window.innerWidth <= 768;
 if(isMobile){
     document.querySelector(".left-panel").style.display="none";
     document.querySelector("#wordCloud").style.display="none";
     document.getElementById("formPage").style.display="block";
 }else{
-    //大屏：生成二维码
-    setTimeout(()=>{
-        new QRCode(document.getElementById("qrcode"), {
-            text: PAGE_URL,
-            width:160,
-            height:160
-        });
-    },300)
+    //大屏生成二维码
+    QRCode.toCanvas(document.getElementById("qrcode"), PAGE_URL, {width:160}, (err)=>{
+        if(err){
+            document.getElementById("qrcode").innerText="二维码加载失败";
+            console.error(err);
+        }
+    })
 }
 
 //提交表单
@@ -129,7 +119,7 @@ document.getElementById("submitBtn").onclick = async ()=>{
     const k2 = document.getElementById("k2").value;
     const k3 = document.getElementById("k3").value;
     if(!name || !k1 || !k2 || !k3){
-        alert("姓名和3个优势都要填！");return;
+        alert("姓名和3个优势岗位全部需要填写！");return;
     }
     await supabase.from("students").insert([{name,kw1:k1,kw2:k2,kw3:k3}]);
     alert("提交成功！回到大屏查看词云");
@@ -142,13 +132,13 @@ document.getElementById("switchView").onclick = ()=>{
 }
 //清空
 document.getElementById("clearAll").onclick = async ()=>{
-    if(confirm("确定清空全部学员数据？")){
+    if(confirm("确定清空全部学员数据？不可恢复！")){
         await supabase.from("students").delete().neq("id",0);
         render();
     }
 }
 
-//实时监听数据库更新
+//实时监听数据库
 supabase.channel("students")
 .on("postgres_changes", {event:"*",schema:"public",table:"students"},()=>render())
 .subscribe();
@@ -165,7 +155,7 @@ async function render(){
         })
     })
     if(viewMode==="cloud"){
-        //词云模式
+        //词云模式：字号随人数变大
         Object.keys(map).forEach(word=>{
             const span = document.createElement("span");
             span.className="cloud-word";
@@ -174,7 +164,7 @@ async function render(){
             box.appendChild(span);
         })
     }else{
-        //标签+名单模式
+        //分析模式：岗位+全部学员名字（方便组队）
         Object.keys(map).forEach(word=>{
             const div = document.createElement("div");
             div.className="tag-item";
