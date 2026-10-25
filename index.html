@@ -4,29 +4,34 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>破冰分组-优势词云组队</title>
-<script src="https://cdn.bootcdn.net/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- 字节国内CDN，国内访问稳定 -->
+<script src="https://lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdn.bootcdn.net/ajax/libs/supabase-js/2.33.1/supabase.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:"Microsoft Yahei",sans-serif}
 body{background:#6b28bc;color:#fff;height:100vh;overflow:hidden;display:flex}
 .left-panel{width:220px;background:rgba(0,0,0,0.2);padding:24px;display:flex;flex-direction:column;gap:16px}
-#qrcode{width:160px;height:160px;background:#fff;border-radius:12px;margin:0 auto}
+#qrcode{width:160px;height:160px;background:#fff;border-radius:12px;margin:0 auto;display:flex;align-items:center;justify-content:center;color:#333;font-size:12px}
 .tip-text{text-align:center;font-size:14px;line-height:1.6}
 .btn{border:none;border-radius:8px;padding:14px 8px;font-size:16px;cursor:pointer;width:100%}
 .btn-yellow{background:#ffd32a;color:#000;font-weight:bold}
 .btn-purple{background:#804fc2;color:#fff}
-.right-area{flex:1;position:relative}
-.form-page{position:absolute;top:0;left:0;width:100%;height:100%;background:#fff;color:#222;padding:30px}
+.right-area{flex:1;position:relative;padding:20px}
+.form-page{position:absolute;top:0;left:0;width:100%;height:100%;background:#fff;color:#222;padding:30px;overflow:auto}
 .form-title{font-size:24px;margin-bottom:20px;text-align:center;color:#6b28bc}
 .form-item{margin:16px 0}
 label{display:block;margin-bottom:6px;font-weight:bold}
 input,select{width:100%;padding:10px;font-size:16px;border:1px solid #ccc;border-radius:6px}
 #submitBtn{background:#6b28bc;color:#fff;border:none;padding:12px;border-radius:8px;font-size:16px;width:100%;margin-top:20px}
+.tag-item{display:inline-block;background:rgba(255,255,255,0.2);border-radius:12px;padding:12px;margin:8px;text-align:center}
+.tag-word{font-size:22px;font-weight:bold}
+.tag-names{font-size:14px;margin-top:6px}
+.cloud-word{font-size:16px;margin:12px;color:#fff;display:inline-block}
 </style>
 </head>
 <body>
 <div class="left-panel">
-    <div id="qrcode"></div>
+    <div id="qrcode">加载中...</div>
     <div class="tip-text">
 扫描二维码<br/>
 填写姓名+3个优势<br/>
@@ -36,9 +41,7 @@ input,select{width:100%;padding:10px;font-size:16px;border:1px solid #ccc;border
     <button class="btn btn-yellow" id="switchView">✅ 开始分析（切换名字环绕图）</button>
     <button class="btn btn-purple" id="clearAll">🗑️ 清空全部数据</button>
 </div>
-<div class="right-area">
-    <div id="wordCloud"></div>
-</div>
+<div class="right-area" id="wordCloud"></div>
 
 <!-- 表单页面，扫码打开 -->
 <div class="form-page" id="formPage" style="display:none">
@@ -99,23 +102,24 @@ input,select{width:100%;padding:10px;font-size:16px;border:1px solid #ccc;border
 const PAGE_URL = "https://xvhexue.github.io/class-cloud/"; 
 const SUPABASE_URL = "https://unmtrrhuhsbshjhzsgpi.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVubXRycmh1aHNic2hqenNncGkiLCJyIjoiYW5vbiIsImlhdCI6MTc1ODA0MjE4OCwiZXhwIjoyMDczNjE4MTg4fQ.ZO4k8Q5nT8Nn9nF5nN0nT8Nn9nF5nN0nT8Nn9nF5nN0nT8Nn9nF5nN0";
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let viewMode = "cloud";
 
-// 生成二维码
-new QRCode(document.getElementById("qrcode"), {
-    text: PAGE_URL,
-    width:160,height:160
-});
-
-// 判断是大屏还是手机表单
-if(location.href === PAGE_URL && !("ontouchstart" in document.documentElement)){
-    //大屏模式
-}else{
-    //手机：展示表单
+// 优化设备判断：宽度小于768px判定手机表单
+const isMobile = window.innerWidth <= 768;
+if(isMobile){
     document.querySelector(".left-panel").style.display="none";
     document.querySelector("#wordCloud").style.display="none";
     document.getElementById("formPage").style.display="block";
+}else{
+    //大屏：生成二维码
+    setTimeout(()=>{
+        new QRCode(document.getElementById("qrcode"), {
+            text: PAGE_URL,
+            width:160,
+            height:160
+        });
+    },300)
 }
 
 //提交表单
@@ -144,8 +148,10 @@ document.getElementById("clearAll").onclick = async ()=>{
     }
 }
 
-//实时监听
-supabase.channel("students").on("postgres_changes", {event:"*",schema:"public",table:"students"},()=>render()).subscribe();
+//实时监听数据库更新
+supabase.channel("students")
+.on("postgres_changes", {event:"*",schema:"public",table:"students"},()=>render())
+.subscribe();
 
 async function render(){
     const {data} = await supabase.from("students").select("*");
@@ -159,19 +165,20 @@ async function render(){
         })
     })
     if(viewMode==="cloud"){
-        //简单词云
+        //词云模式
         Object.keys(map).forEach(word=>{
             const span = document.createElement("span");
+            span.className="cloud-word";
+            span.style.fontSize = `${16 + map[word].length*8}px`;
             span.innerText = word;
-            span.style.cssText = `font-size:${16+map[word].length*8}px;margin:12px;color:#fff`;
             box.appendChild(span);
         })
     }else{
-        //名字环绕标签
+        //标签+名单模式
         Object.keys(map).forEach(word=>{
             const div = document.createElement("div");
-            div.style.cssText="display:inline-block;background:rgba(255,255,255,0.2);border-radius:12px;padding:12px;margin:8px;text-align:center"
-            div.innerHTML = `<div style="font-size:22px;font-weight:bold">${word}</div><div style="font-size:14px;margin-top:6px">${map[word].join("、")}</div>`
+            div.className="tag-item";
+            div.innerHTML = `<div class="tag-word">${word}</div><div class="tag-names">${map[word].join("、")}</div>`
             box.appendChild(div);
         })
     }
