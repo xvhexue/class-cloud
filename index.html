@@ -3,290 +3,180 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>优势聚类云｜直播创业组队</title>
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
-<script src="https://d3js.org/d3.v7.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/wordcloud2.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js"></script>
+<title>破冰分组-优势词云组队</title>
+<script src="https://cdn.bootcdn.net/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-*{box-sizing:border-box;margin:0;padding:0;font-family:"Microsoft Yahei",sans-serif}
-body{background:#6b28bc;color:#fff;height:100vh;display:flex;overflow:hidden}
-.left{width:280px;padding:30px 20px;background:#551f96;display:flex;flex-direction:column;align-items:center}
-.qr-box{width:200px;height:200px;background:#fff;border-radius:12px;margin-bottom:20px}
-.tip{text-align:center;line-height:1.6;font-size:16px;margin-bottom:24px}
-.btns{display:flex;gap:10px;flex-direction:column;width:100%}
-button{padding:12px;border:none;border-radius:8px;font-size:16px;font-weight:bold;cursor:pointer}
-#analyseBtn{background:#ffd02b;color:#222}
-#resetBtn{background:#ffffff33;color:#fff}
-.right{flex:1;padding:10px;position:relative}
-#cloudCanvas{width:100%;height:100%;position:absolute;top:0;left:0}
-#chart{width:100%;height:100%;position:absolute;top:0;left:0;display:none}
-.tag-node{font-weight:bold;fill:#fff}
-.name-node{fill:#fff;font-size:14px}
-.link{stroke:#ffffff55;stroke-width:1}
-.pop{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;color:#222;padding:24px;border-radius:12px;min-width:340px;display:none;z-index:99}
-.pop h3{margin-bottom:12px}
-.pop-close{margin-top:16px;width:100%;background:#6b28bc;color:#fff}
-.form-page{display:none;padding:24px;background:#fff;color:#222;height:100vh;overflow:auto}
-.form-page h2{margin-bottom:16px;color:#6b28bc}
-.form-item{margin:14px 0}
+*{margin:0;padding:0;box-sizing:border-box;font-family:"Microsoft Yahei",sans-serif}
+body{background:#6b28bc;color:#fff;height:100vh;overflow:hidden;display:flex}
+.left-panel{width:220px;background:rgba(0,0,0,0.2);padding:24px;display:flex;flex-direction:column;gap:16px}
+#qrcode{width:160px;height:160px;background:#fff;border-radius:12px;margin:0 auto}
+.tip-text{text-align:center;font-size:14px;line-height:1.6}
+.btn{border:none;border-radius:8px;padding:14px 8px;font-size:16px;cursor:pointer;width:100%}
+.btn-yellow{background:#ffd32a;color:#000;font-weight:bold}
+.btn-purple{background:#804fc2;color:#fff}
+.right-area{flex:1;position:relative}
+.form-page{position:absolute;top:0;left:0;width:100%;height:100%;background:#fff;color:#222;padding:30px}
+.form-title{font-size:24px;margin-bottom:20px;text-align:center;color:#6b28bc}
+.form-item{margin:16px 0}
 label{display:block;margin-bottom:6px;font-weight:bold}
-input,select{width:100%;padding:10px;border:1px solid #ccc;border-radius:6px;font-size:16px}
-#submitFormBtn{width:100%;margin-top:20px;background:#6b28bc;color:#fff;padding:12px}
+input,select{width:100%;padding:10px;font-size:16px;border:1px solid #ccc;border-radius:6px}
+#submitBtn{background:#6b28bc;color:#fff;border:none;padding:12px;border-radius:8px;font-size:16px;width:100%;margin-top:20px}
 </style>
 </head>
 <body>
-<div class="main-page">
-  <div class="left">
-    <div class="qr-box" id="qrcode"></div>
-    <div class="tip">扫描二维码<br>填写姓名+3个优势<br>收集完成后<br>老师点击【开始分析】切换组队视图</div>
-    <div class="btns">
-      <button id="analyseBtn">✅ 开始分析（切换名字环绕图）</button>
-      <button id="resetBtn">🔄 清空全部数据</button>
+<div class="left-panel">
+    <div id="qrcode"></div>
+    <div class="tip-text">
+扫描二维码<br/>
+填写姓名+3个优势<br/>
+收集完成后<br/>
+老师点击【开始分析】切换组队视图
     </div>
-  </div>
-  <div class="right">
-    <canvas id="cloudCanvas"></canvas>
-    <svg id="chart"></svg>
-    <div class="pop" id="pop">
-      <h3 id="popTitle">拥有该优势的学员</h3>
-      <div id="popList"></div>
-      <button class="pop-close" onclick="closePop()">关闭</button>
-    </div>
-  </div>
+    <button class="btn btn-yellow" id="switchView">✅ 开始分析（切换名字环绕图）</button>
+    <button class="btn btn-purple" id="clearAll">🗑️ 清空全部数据</button>
+</div>
+<div class="right-area">
+    <div id="wordCloud"></div>
 </div>
 
-<div class="form-page" id="formPage">
-  <h2>📝 提交你的优势（直播创业组队）</h2>
-  <div class="form-item">
-    <label>你的姓名</label>
-    <input type="text" id="name" placeholder="请输入姓名">
-  </div>
-  <div class="form-item">
-    <label>优势1</label>
-    <select id="tag1">
-      <option value="">请选择</option>
-      <option>善于出镜表达</option>
-      <option>会拍照</option>
-      <option>会剪视频</option>
-      <option>熟悉随州农货</option>
-      <option>懂货源供应链</option>
-      <option>人脉广</option>
-      <option>擅长沟通销售</option>
-      <option>执行力强</option>
-      <option>学习快</option>
-      <option>熟悉短视频玩法</option>
-      <option>擅长客服售后</option>
-      <option>吃苦耐劳</option>
-      <option>懂电商运营</option>
-      <option>会做图文文案</option>
-    </select>
-  </div>
-  <div class="form-item">
-    <label>优势2</label>
-    <select id="tag2">
-      <option value="">请选择</option>
-      <option>善于出镜表达</option>
-      <option>会拍照</option>
-      <option>会剪视频</option>
-      <option>熟悉随州农货</option>
-      <option>懂货源供应链</option>
-      <option>人脉广</option>
-      <option>擅长沟通销售</option>
-      <option>执行力强</option>
-      <option>学习快</option>
-      <option>熟悉短视频玩法</option>
-      <option>擅长客服售后</option>
-      <option>吃苦耐劳</option>
-      <option>懂电商运营</option>
-      <option>会做图文文案</option>
-    </select>
-  </div>
-  <div class="form-item">
-    <label>优势3</label>
-    <select id="tag3">
-      <option value="">请选择</option>
-      <option>善于出镜表达</option>
-      <option>会拍照</option>
-      <option>会剪视频</option>
-      <option>熟悉随州农货</option>
-      <option>懂货源供应链</option>
-      <option>人脉广</option>
-      <option>擅长沟通销售</option>
-      <option>执行力强</option>
-      <option>学习快</option>
-      <option>熟悉短视频玩法</option>
-      <option>擅长客服售后</option>
-      <option>吃苦耐劳</option>
-      <option>懂电商运营</option>
-      <option>会做图文文案</option>
-    </select>
-  </div>
-  <button id="submitFormBtn">提交信息</button>
+<!-- 表单页面，扫码打开 -->
+<div class="form-page" id="formPage" style="display:none">
+    <h2 class="form-title">优势资源收集表</h2>
+    <div class="form-item">
+        <label>姓名</label>
+        <input type="text" id="name" placeholder="请输入你的姓名">
+    </div>
+    <div class="form-item">
+        <label>优势关键词1</label>
+        <select id="k1">
+            <option value="">请选择</option>
+            <option value="口才好">口才好</option>
+            <option value="剪辑">剪辑</option>
+            <option value="拍摄">拍摄</option>
+            <option value="文案">文案</option>
+            <option value="运营">运营</option>
+            <option value="销售">销售</option>
+            <option value="耐心细心">耐心细心</option>
+            <option value="擅长沟通">擅长沟通</option>
+            <option value="懂产品">懂产品</option>
+        </select>
+    </div>
+    <div class="form-item">
+        <label>优势关键词2</label>
+        <select id="k2">
+            <option value="">请选择</option>
+            <option value="口才好">口才好</option>
+            <option value="剪辑">剪辑</option>
+            <option value="拍摄">拍摄</option>
+            <option value="文案">文案</option>
+            <option value="运营">运营</option>
+            <option value="销售">销售</option>
+            <option value="耐心细心">耐心细心</option>
+            <option value="擅长沟通">擅长沟通</option>
+            <option value="懂产品">懂产品</option>
+        </select>
+    </div>
+    <div class="form-item">
+        <label>优势关键词3</label>
+        <select id="k3">
+            <option value="">请选择</option>
+            <option value="口才好">口才好</option>
+            <option value="剪辑">剪辑</option>
+            <option value="拍摄">拍摄</option>
+            <option value="文案">文案</option>
+            <option value="运营">运营</option>
+            <option value="销售">销售</option>
+            <option value="耐心细心">耐心细心</option>
+            <option value="擅长沟通">擅长沟通</option>
+            <option value="懂产品">懂产品</option>
+        </select>
+    </div>
+    <button id="submitBtn">提交我的优势</button>
 </div>
 
 <script>
-// ============ 【在这里填入你的Firebase配置信息】============
-const firebaseConfig = {
-  apiKey: "替换这里",
-  authDomain: "替换这里",
-  databaseURL: "替换这里",
-  projectId: "替换这里",
-  storageBucket: "替换这里",
-  messagingSenderId: "替换这里",
-  appId: "替换这里"
-};
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
-const ref = db.ref("students");
+const PAGE_URL = "https://xvhexue.github.io/class-cloud/"; 
+const SUPABASE_URL = "https://unmtrrhuhsbshjhzsgpi.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVubXRycmh1aHNic2hqenNncGkiLCJyIjoiYW5vbiIsImlhdCI6MTc1ODA0MjE4OCwiZXhwIjoyMDczNjE4MTg4fQ.ZO4k8Q5nT8Nn9nF5nN0nT8Nn9nF5nN0nT8Nn9nF5nN0nT8Nn9nF5nN0";
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+let viewMode = "cloud";
 
 // 生成二维码
-const pageUrl = location.href + "#form";
-new QRCode(document.getElementById("qrcode"),{width:200,height:200,text:pageUrl});
+new QRCode(document.getElementById("qrcode"), {
+    text: PAGE_URL,
+    width:160,height:160
+});
 
-// 表单页面判断
-if(location.hash === "#form"){
-  document.querySelector(".main-page").style.display="none";
-  document.getElementById("formPage").style.display="block";
+// 判断是大屏还是手机表单
+if(location.href === PAGE_URL && !("ontouchstart" in document.documentElement)){
+    //大屏模式
+}else{
+    //手机：展示表单
+    document.querySelector(".left-panel").style.display="none";
+    document.querySelector("#wordCloud").style.display="none";
+    document.getElementById("formPage").style.display="block";
 }
 
-// 表单提交
-document.getElementById("submitFormBtn").onclick = async function(){
-  const name = document.getElementById("name").value.trim();
-  const t1 = document.getElementById("tag1").value;
-  const t2 = document.getElementById("tag2").value;
-  const t3 = document.getElementById("tag3").value;
-  if(!name || !t1 || !t2 || !t3){
-    alert("姓名和3个优势必须全部选择！");return;
-  }
-  await ref.push({name,tags:[t1,t2,t3]});
-  alert("✅提交成功！回到大屏幕");
-}
-
-let studentData = [];
-let viewMode = "wordcloud"; // wordcloud / force
-
-// 监听云端数据，实时刷新普通词云
-ref.on("value",snap=>{
-  const raw = snap.val();
-  studentData = raw ? Object.values(raw) : [];
-  if(viewMode === "wordcloud"){
-    renderWordCloud();
-  }
-})
-
-// 渲染基础词云（只展示优势标签）
-function renderWordCloud(){
-  const countMap = {};
-  studentData.forEach(s=>{
-    s.tags.forEach(t=>{
-      countMap[t] = (countMap[t]||0)+1;
-    })
-  })
-  const arr = Object.keys(countMap).map(k=>({text:k,weight:countMap[k]}));
-  WordCloud(document.getElementById("cloudCanvas"),{
-    list:arr,
-    gridSize:10,
-    weightFactor:20,
-    fontFamily:"Microsoft Yahei",
-    color:function(){
-      const c = ["#ffd02b","#44ee77","#ff6666","#55ddff","#ff88ee"];
-      return c[Math.floor(Math.random()*c.length)];
-    },
-    backgroundColor:"transparent",
-    click:function(item){
-      const tagName = item[0];
-      const tagMap = {};
-      studentData.forEach(s=>s.tags.forEach(t=>{
-        if(!tagMap[t]) tagMap[t]=[];
-        tagMap[t].push(s.name);
-      }))
-      document.getElementById("popTitle").innerText = `优势【${tagName}】学员：`;
-      document.getElementById("popList").innerText = tagMap[tagName].join("、");
-      document.getElementById("pop").style.display="block";
+//提交表单
+document.getElementById("submitBtn").onclick = async ()=>{
+    const name = document.getElementById("name").value.trim();
+    const k1 = document.getElementById("k1").value;
+    const k2 = document.getElementById("k2").value;
+    const k3 = document.getElementById("k3").value;
+    if(!name || !k1 || !k2 || !k3){
+        alert("姓名和3个优势都要填！");return;
     }
-  })
+    await supabase.from("students").insert([{name,kw1:k1,kw2:k2,kw3:k3}]);
+    alert("提交成功！回到大屏查看词云");
 }
 
-// 渲染力导向聚类图（标签为中心，名字环绕）
-function renderForceChart(){
-  const tagMap = {};
-  const nodes = [];
-  const links = [];
-  const tagSet = new Set();
-  studentData.forEach(s=>s.tags.forEach(t=>tagSet.add(t)));
-  Array.from(tagSet).forEach(t=>{
-    tagMap[t] = [];
-    nodes.push({id:t,type:"tag"});
-  })
-  studentData.forEach(s=>{
-    nodes.push({id:s.name,type:"name"});
-    s.tags.forEach(t=>{
-      tagMap[t].push(s.name);
-      links.push({source:t,target:s.name})
+//切换视图
+document.getElementById("switchView").onclick = ()=>{
+    viewMode = viewMode==="cloud"?"force":"cloud";
+    render();
+}
+//清空
+document.getElementById("clearAll").onclick = async ()=>{
+    if(confirm("确定清空全部学员数据？")){
+        await supabase.from("students").delete().neq("id",0);
+        render();
+    }
+}
+
+//实时监听
+supabase.channel("students").on("postgres_changes", {event:"*",schema:"public",table:"students"},()=>render()).subscribe();
+
+async function render(){
+    const {data} = await supabase.from("students").select("*");
+    const box = document.getElementById("wordCloud");
+    box.innerHTML = "";
+    const map = {};
+    data.forEach(item=>{
+        [item.kw1,item.kw2,item.kw3].forEach(k=>{
+            if(!map[k]) map[k]=[];
+            map[k].push(item.name);
+        })
     })
-  })
-  const svg = d3.select("#chart");
-  svg.selectAll("*").remove();
-  const width = svg.node().clientWidth;
-  const height = svg.node().clientHeight;
-  const simulation = d3.forceSimulation(nodes)
-    .force("link",d3.forceLink(links).id(d=>d.id).distance(80))
-    .force("charge",d3.forceManyBody().strength(-280))
-    .force("center",d3.forceCenter(width/2,height/2));
-  const link = svg.append("g").selectAll("line")
-    .data(links).enter().append("line").attr("class","link");
-  const text = svg.append("g").selectAll("text")
-    .data(nodes).enter().append("text")
-    .attr("class",d=>d.type==="tag"?"tag-node":"name-node")
-    .text(d=>d.id)
-    .on("click",(event,d)=>{
-      if(d.type==="tag"){
-        document.getElementById("popTitle").innerText = `优势【${d.id}】学员：`;
-        document.getElementById("popList").innerText = tagMap[d.id].join("、");
-        document.getElementById("pop").style.display="block";
-      }
-    })
-  simulation.on("tick",()=>{
-    link.attr("x1",d=>d.source.x).attr("y1",d=>d.source.y)
-      .attr("x2",d=>d.target.x).attr("y2",d=>d.target.y);
-    text.attr("x",d=>d.x).attr("y",d=>d.y);
-  })
+    if(viewMode==="cloud"){
+        //简单词云
+        Object.keys(map).forEach(word=>{
+            const span = document.createElement("span");
+            span.innerText = word;
+            span.style.cssText = `font-size:${16+map[word].length*8}px;margin:12px;color:#fff`;
+            box.appendChild(span);
+        })
+    }else{
+        //名字环绕标签
+        Object.keys(map).forEach(word=>{
+            const div = document.createElement("div");
+            div.style.cssText="display:inline-block;background:rgba(255,255,255,0.2);border-radius:12px;padding:12px;margin:8px;text-align:center"
+            div.innerHTML = `<div style="font-size:22px;font-weight:bold">${word}</div><div style="font-size:14px;margin-top:6px">${map[word].join("、")}</div>`
+            box.appendChild(div);
+        })
+    }
 }
-
-// 切换到聚类组队视图
-document.getElementById("analyseBtn").onclick = function(){
-  if(studentData.length===0){alert("暂无学员提交数据");return;}
-  viewMode = "force";
-  document.getElementById("cloudCanvas").style.display = "none";
-  document.getElementById("chart").style.display = "block";
-  renderForceChart();
-  this.innerText = "🔙 返回词云视图";
-  this.onclick = function(){
-    viewMode = "wordcloud";
-    document.getElementById("cloudCanvas").style.display = "block";
-    document.getElementById("chart").style.display = "none";
-    renderWordCloud();
-    this.innerText = "✅ 开始分析（切换名字环绕图）";
-    this.onclick = arguments.callee.caller;
-  }
-}
-
-function closePop(){
-  document.getElementById("pop").style.display="none";
-}
-
-document.getElementById("resetBtn").onclick = async function(){
-  if(confirm("确定清空全部提交记录？")){
-    await ref.remove();
-    studentData = [];
-    viewMode = "wordcloud";
-    document.getElementById("cloudCanvas").style.display = "block";
-    document.getElementById("chart").style.display = "none";
-    renderWordCloud();
-  }
-}
+render();
 </script>
 </body>
 </html>
