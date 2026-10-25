@@ -2,621 +2,290 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#070b18">
-<title>我们班的优势词云</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>优势聚类云｜直播创业组队</title>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/wordcloud2.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js"></script>
 <style>
-  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-  html,body{height:100%;margin:0;}
-  body{
-    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",Arial,sans-serif;
-    background:#070b18;color:#eaf0ff;overflow:hidden;
-    -webkit-font-smoothing:antialiased;
-  }
-  :root{
-    --panel:rgba(255,255,255,.045);
-    --line:rgba(255,255,255,.10);
-    --muted:#8592b8;
-    --cyan:#5ee7ff;
-    --blue:#7c9cff;
-  }
-  .view{display:none;}
-  #app-screen{
-    height:100%;flex-direction:column;
-    background:radial-gradient(900px 620px at 12% -5%,rgba(88,120,255,.30),transparent 62%),
-               radial-gradient(820px 540px at 92% 105%,rgba(0,224,180,.18),transparent 62%),#070b18;
-  }
-  #app-screen.active{display:flex;}
-  .topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 26px 10px;flex:0 0 auto;}
-  .brand{display:flex;align-items:center;gap:14px;}
-  .logo{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;background:linear-gradient(135deg,#5ee7ff,#7c9cff 45%,#f472b6);color:#07101f;font-size:21px;font-weight:900;box-shadow:0 8px 26px rgba(92,124,255,.45);}
-  .brand h1{font-size:20px;margin:0;letter-spacing:.6px;font-weight:800;}
-  .brand .sub{margin:4px 0 0;font-size:12.5px;color:var(--muted);letter-spacing:.3px;}
-  .actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;align-items:center;}
-  .btn{display:inline-flex;align-items:center;gap:7px;padding:10px 17px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.055);color:#eaf0ff;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;transition:all .18s cubic-bezier(.3,1.4,.5,1);backdrop-filter:blur(8px);}
-  .btn:hover{background:rgba(124,156,255,.24);border-color:rgba(124,156,255,.6);transform:translateY(-1px);}
-  .btn:active{transform:translateY(0) scale(.98);}
-  .btn.danger:hover{background:rgba(244,63,94,.26);border-color:rgba(244,63,94,.65);}
-  .conn{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:var(--muted);padding:6px 10px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.03);}
-  .conn .dot{width:7px;height:7px;border-radius:50%;background:#f59e0b;flex:0 0 auto;}
-  .conn.online .dot{background:#34d399;box-shadow:0 0 8px rgba(52,211,153,.7);}
-  .conn.offline .dot{background:#f43f5e;}
-  .stage{flex:1;display:flex;gap:16px;padding:6px 26px 22px;min-height:0;}
-  .side{width:268px;flex:0 0 268px;display:flex;flex-direction:column;gap:13px;min-height:0;}
-  .qr-card{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:15px;text-align:center;backdrop-filter:blur(10px);}
-  #qrcode{background:#fff;border-radius:14px;padding:10px;min-height:60px;display:grid;place-items:center;}
-  #qrcode img{display:block;width:100%;height:auto;image-rendering:pixelated;border-radius:4px;}
-  .qr-tip{margin:12px 0 0;font-size:13.5px;font-weight:600;color:#cfd8f5;letter-spacing:.3px;}
-  .qr-sub{margin:6px 0 0;font-size:11px;color:var(--muted);word-break:break-all;line-height:1.5;}
-  .qr-warn{background:#fff7ed;color:#b45309;border-radius:12px;padding:14px 10px;font-size:12px;line-height:1.7;font-weight:600;}
-  .stat{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:16px 18px;display:flex;align-items:center;gap:14px;backdrop-filter:blur(10px);}
-  .stat-num{font-size:44px;font-weight:900;line-height:1;background:linear-gradient(180deg,#ffffff,#7c9cff 90%);-webkit-background-clip:text;background-clip:text;color:transparent;font-variant-numeric:tabular-nums;min-width:52px;}
-  .stat-label{font-size:12.5px;color:var(--muted);line-height:1.5;}
-  .stat-label b{display:block;font-size:14px;color:#dfe6ff;font-weight:700;margin-bottom:2px;}
-  .feed{flex:1;overflow:auto;display:flex;flex-direction:column;gap:8px;min-height:0;padding-right:2px;}
-  .feed::-webkit-scrollbar{width:5px;}
-  .feed::-webkit-scrollbar-thumb{background:rgba(124,156,255,.35);border-radius:3px;}
-  .feed-item{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:9px 13px;animation:slideIn .4s ease both;}
-  @keyframes slideIn{from{opacity:0;transform:translateX(-12px);}to{opacity:1;transform:none;}}
-  .feed-name{display:block;font-size:13.5px;font-weight:700;color:#fff;margin-bottom:2px;}
-  .feed-adv{display:block;font-size:11.5px;color:var(--cyan);opacity:.85;line-height:1.5;}
-  .canvas-wrap{flex:1;position:relative;min-width:0;border-radius:22px;border:1px solid rgba(255,255,255,.06);overflow:hidden;background:radial-gradient(760px 460px at 50% 45%,rgba(124,156,255,.11),transparent 72%);}
-  #stageCanvas{position:absolute;inset:0;display:block;}
-  .empty{position:absolute;inset:0;display:flex;flex-direction:column;gap:12px;align-items:center;justify-content:center;color:var(--muted);font-size:16px;pointer-events:none;letter-spacing:.5px;text-align:center;padding:20px;}
-  .empty .pulse{width:14px;height:14px;border-radius:50%;background:var(--cyan);box-shadow:0 0 0 0 rgba(94,231,255,.7);animation:pulse 2s infinite;}
-  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(94,231,255,.6);}70%{box-shadow:0 0 0 26px rgba(94,231,255,0);}100%{box-shadow:0 0 0 0 rgba(94,231,255,0);}}
-  #app-mobile{background:#f4f6fc;color:#101629;height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch;}
-  #app-mobile.active{display:block;}
-  .m-wrap{max-width:520px;margin:0 auto;padding:30px 18px 48px;}
-  .m-head{text-align:center;margin-bottom:22px;}
-  .m-logo{width:58px;height:58px;border-radius:19px;margin:0 auto 15px;background:linear-gradient(135deg,#5ee7ff,#7c9cff 45%,#f472b6);display:grid;place-items:center;font-size:27px;color:#08101f;font-weight:900;box-shadow:0 12px 28px rgba(124,156,255,.38);}
-  .m-head h2{margin:0 0 7px;font-size:21px;font-weight:800;letter-spacing:.4px;}
-  .m-head p{margin:0;font-size:13px;color:#7b86a3;line-height:1.6;}
-  .m-card{background:#fff;border-radius:22px;padding:22px 18px;box-shadow:0 12px 34px rgba(23,38,86,.09);}
-  .field{margin-bottom:15px;}
-  .field label{display:block;font-size:13px;font-weight:700;color:#4a5573;margin-bottom:7px;letter-spacing:.3px;}
-  .field label em{color:#f43f5e;font-style:normal;}
-  .field input{width:100%;padding:13px 15px;font-size:16px;border-radius:13px;border:1.5px solid #e6eaf5;background:#f8faff;color:#101629;outline:none;font-family:inherit;transition:border-color .18s,box-shadow .18s,background .18s;}
-  .field input::placeholder{color:#b3bcd0;}
-  .field input:focus{border-color:#7c9cff;background:#fff;box-shadow:0 0 0 4px rgba(124,156,255,.15);}
-  .field.shake{animation:shake .38s;}
-  @keyframes shake{0%,100%{transform:translateX(0);}25%{transform:translateX(-7px);}75%{transform:translateX(7px);}}
-  .m-btn{width:100%;padding:15px;border:none;border-radius:15px;font-size:16.5px;font-weight:800;letter-spacing:1px;color:#fff;background:linear-gradient(135deg,#6a8bff,#8b5cf6);box-shadow:0 12px 24px rgba(110,130,255,.34);cursor:pointer;font-family:inherit;margin-top:6px;transition:transform .12s;}
-  .m-btn:active{transform:scale(.98);}
-  .m-btn.ghost{background:#eef1fb;color:#4a5573;box-shadow:none;margin-top:16px;font-weight:700;}
-  .m-hint{margin:14px 0 0;text-align:center;font-size:12px;color:#9aa4bd;line-height:1.6;}
-  .m-status{margin:0 0 14px;text-align:center;font-size:12px;color:#9aa4bd;min-height:18px;}
-  .m-success{text-align:center;padding:38px 20px;}
-  .ok-icon{width:70px;height:70px;border-radius:50%;margin:0 auto 18px;display:grid;place-items:center;font-size:34px;color:#fff;background:linear-gradient(135deg,#34d399,#10b981);box-shadow:0 12px 26px rgba(16,185,129,.38);animation:pop .45s cubic-bezier(.2,1.6,.5,1) both;}
-  @keyframes pop{from{transform:scale(.4);opacity:0;}to{transform:scale(1);opacity:1;}}
-  .m-success h3{margin:0 0 10px;font-size:20px;font-weight:800;}
-  .m-success p{margin:0;font-size:14px;color:#7b86a3;line-height:1.7;}
-  .toast{position:fixed;left:50%;bottom:58px;transform:translate(-50%,16px);background:rgba(17,24,39,.94);color:#fff;padding:12px 22px;border-radius:999px;font-size:14px;opacity:0;pointer-events:none;transition:.26s;z-index:9999;box-shadow:0 10px 30px rgba(0,0,0,.3);white-space:nowrap;}
-  .toast.show{opacity:1;transform:translate(-50%,0);}
-  @media (max-width:900px){.side{display:none;}.topbar{padding:12px 14px 6px;}.brand h1{font-size:16px;}.btn{padding:8px 12px;font-size:12.5px;}.stage{padding:6px 12px 14px;}.conn{display:none;}}
+*{box-sizing:border-box;margin:0;padding:0;font-family:"Microsoft Yahei",sans-serif}
+body{background:#6b28bc;color:#fff;height:100vh;display:flex;overflow:hidden}
+.left{width:280px;padding:30px 20px;background:#551f96;display:flex;flex-direction:column;align-items:center}
+.qr-box{width:200px;height:200px;background:#fff;border-radius:12px;margin-bottom:20px}
+.tip{text-align:center;line-height:1.6;font-size:16px;margin-bottom:24px}
+.btns{display:flex;gap:10px;flex-direction:column;width:100%}
+button{padding:12px;border:none;border-radius:8px;font-size:16px;font-weight:bold;cursor:pointer}
+#analyseBtn{background:#ffd02b;color:#222}
+#resetBtn{background:#ffffff33;color:#fff}
+.right{flex:1;padding:10px;position:relative}
+#cloudCanvas{width:100%;height:100%;position:absolute;top:0;left:0}
+#chart{width:100%;height:100%;position:absolute;top:0;left:0;display:none}
+.tag-node{font-weight:bold;fill:#fff}
+.name-node{fill:#fff;font-size:14px}
+.link{stroke:#ffffff55;stroke-width:1}
+.pop{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;color:#222;padding:24px;border-radius:12px;min-width:340px;display:none;z-index:99}
+.pop h3{margin-bottom:12px}
+.pop-close{margin-top:16px;width:100%;background:#6b28bc;color:#fff}
+.form-page{display:none;padding:24px;background:#fff;color:#222;height:100vh;overflow:auto}
+.form-page h2{margin-bottom:16px;color:#6b28bc}
+.form-item{margin:14px 0}
+label{display:block;margin-bottom:6px;font-weight:bold}
+input,select{width:100%;padding:10px;border:1px solid #ccc;border-radius:6px;font-size:16px}
+#submitFormBtn{width:100%;margin-top:20px;background:#6b28bc;color:#fff;padding:12px}
 </style>
 </head>
 <body>
-
-<div id="app-screen" class="view">
-  <header class="topbar">
-    <div class="brand">
-      <div class="logo">✦</div>
-      <div>
-        <h1>我们班的优势词云</h1>
-        <p class="sub">微信扫码 · 写下名字 + 3 个优势 · 大屏实时生长</p>
-      </div>
+<div class="main-page">
+  <div class="left">
+    <div class="qr-box" id="qrcode"></div>
+    <div class="tip">扫描二维码<br>填写姓名+3个优势<br>收集完成后<br>老师点击【开始分析】切换组队视图</div>
+    <div class="btns">
+      <button id="analyseBtn">✅ 开始分析（切换名字环绕图）</button>
+      <button id="resetBtn">🔄 清空全部数据</button>
     </div>
-    <div class="actions">
-      <span class="conn" id="connBadge"><span class="dot"></span><span id="connText">初始化中…</span></span>
-      <button id="btnMode" class="btn">🔀 名字环绕聚类</button>
-      <button id="btnFull" class="btn">⛶ 全屏</button>
-      <button id="btnClear" class="btn danger">🗑 清空全班</button>
-    </div>
-  </header>
-
-  <main class="stage">
-    <aside class="side">
-      <div class="qr-card">
-        <div id="qrcode"><div style="color:#666;font-size:12px;padding:20px;">二维码加载中...</div></div>
-        <p class="qr-tip">📱 微信扫一扫 · 填写优势</p>
-        <p class="qr-sub" id="urlText"></p>
-      </div>
-      <div class="stat">
-        <div class="stat-num" id="statNum">0</div>
-        <div class="stat-label"><b>已提交同学</b>实时同步更新</div>
-      </div>
-      <div class="feed" id="feed"></div>
-    </aside>
-
-    <section class="canvas-wrap" id="canvasWrap">
-      <canvas id="stageCanvas"></canvas>
-      <div class="empty" id="emptyHint">
-        <div class="pulse"></div>
-        <div>等待第一位同学扫码填写…</div>
-      </div>
-    </section>
-  </main>
-</div>
-
-<div id="app-mobile" class="view">
-  <div class="m-wrap">
-    <div class="m-head">
-      <div class="m-logo">✦</div>
-      <h2>写下你的优势</h2>
-      <p>你写的每一个词，都会实时出现在大屏上</p>
-    </div>
-    <p class="m-status" id="mStatus"></p>
-    <div class="m-card" id="mForm">
-      <div class="field" id="fName">
-        <label>姓名 <em>*</em></label>
-        <input id="mName" type="text" maxlength="12" placeholder="请输入你的名字" autocomplete="off" enterkeyhint="next">
-      </div>
-      <div class="field" id="fA1">
-        <label>优势 1 <em>*</em></label>
-        <input id="mA1" type="text" maxlength="10" placeholder="例如：善于倾听" autocomplete="off">
-      </div>
-      <div class="field" id="fA2">
-        <label>优势 2</label>
-        <input id="mA2" type="text" maxlength="10" placeholder="例如：逻辑清晰" autocomplete="off">
-      </div>
-      <div class="field" id="fA3">
-        <label>优势 3</label>
-        <input id="mA3" type="text" maxlength="10" placeholder="例如：执行力强" autocomplete="off">
-      </div>
-      <button id="mSubmit" class="m-btn">提 交 到 大 屏</button>
-      <p class="m-hint">建议每个优势 2–6 个字，词云会更好看 ✨</p>
-    </div>
-    <div class="m-card m-success" id="mSuccess" style="display:none;">
-      <div class="ok-icon">✓</div>
-      <h3>提交成功！</h3>
-      <p id="mSuccessText"></p>
-      <button id="mAgain" class="m-btn ghost">再填一位同学</button>
+  </div>
+  <div class="right">
+    <canvas id="cloudCanvas"></canvas>
+    <svg id="chart"></svg>
+    <div class="pop" id="pop">
+      <h3 id="popTitle">拥有该优势的学员</h3>
+      <div id="popList"></div>
+      <button class="pop-close" onclick="closePop()">关闭</button>
     </div>
   </div>
 </div>
 
-<div class="toast" id="toast"></div>
-
-<!-- 使用国内稳定 CDN，并放在 body 末尾防止阻塞渲染 -->
-<script src="https://cdn.bootcdn.net/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
-<script src="https://lf9-cdn-tos.bytecdntp.com/cdn/expire-1-M/supabase-js/2.39.3/supabase.min.js"></script>
+<div class="form-page" id="formPage">
+  <h2>📝 提交你的优势（直播创业组队）</h2>
+  <div class="form-item">
+    <label>你的姓名</label>
+    <input type="text" id="name" placeholder="请输入姓名">
+  </div>
+  <div class="form-item">
+    <label>优势1</label>
+    <select id="tag1">
+      <option value="">请选择</option>
+      <option>善于出镜表达</option>
+      <option>会拍照</option>
+      <option>会剪视频</option>
+      <option>熟悉随州农货</option>
+      <option>懂货源供应链</option>
+      <option>人脉广</option>
+      <option>擅长沟通销售</option>
+      <option>执行力强</option>
+      <option>学习快</option>
+      <option>熟悉短视频玩法</option>
+      <option>擅长客服售后</option>
+      <option>吃苦耐劳</option>
+      <option>懂电商运营</option>
+      <option>会做图文文案</option>
+    </select>
+  </div>
+  <div class="form-item">
+    <label>优势2</label>
+    <select id="tag2">
+      <option value="">请选择</option>
+      <option>善于出镜表达</option>
+      <option>会拍照</option>
+      <option>会剪视频</option>
+      <option>熟悉随州农货</option>
+      <option>懂货源供应链</option>
+      <option>人脉广</option>
+      <option>擅长沟通销售</option>
+      <option>执行力强</option>
+      <option>学习快</option>
+      <option>熟悉短视频玩法</option>
+      <option>擅长客服售后</option>
+      <option>吃苦耐劳</option>
+      <option>懂电商运营</option>
+      <option>会做图文文案</option>
+    </select>
+  </div>
+  <div class="form-item">
+    <label>优势3</label>
+    <select id="tag3">
+      <option value="">请选择</option>
+      <option>善于出镜表达</option>
+      <option>会拍照</option>
+      <option>会剪视频</option>
+      <option>熟悉随州农货</option>
+      <option>懂货源供应链</option>
+      <option>人脉广</option>
+      <option>擅长沟通销售</option>
+      <option>执行力强</option>
+      <option>学习快</option>
+      <option>熟悉短视频玩法</option>
+      <option>擅长客服售后</option>
+      <option>吃苦耐劳</option>
+      <option>懂电商运营</option>
+      <option>会做图文文案</option>
+    </select>
+  </div>
+  <button id="submitFormBtn">提交信息</button>
+</div>
 
 <script>
-/* ================================================================
-   配置区
-================================================================ */
-const SUPABASE_URL = 'https://unmtrrhuhsbshjhzsgpi.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_iKFdTVTnP0d4rxQhrwnBFw_5fSVs0IP';
-const CHANNEL_NAME = 'class-adv-room-v1';
-const STORAGE_KEY = 'class-adv-local-v1';
+// ============ 【在这里填入你的Firebase配置信息】============
+const firebaseConfig = {
+  apiKey: "替换这里",
+  authDomain: "替换这里",
+  databaseURL: "替换这里",
+  projectId: "替换这里",
+  storageBucket: "替换这里",
+  messagingSenderId: "替换这里",
+  appId: "替换这里"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const ref = db.ref("students");
 
-const $  = (s, r = document) => r.querySelector(s);
-const FONT = '-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif';
-const PALETTE = ['#5ee7ff','#8aa4ff','#c4b5fd','#f9a8d4','#fcd34d','#6ee7b7','#93c5fd','#fdba74','#a7f3d0','#f0abfc'];
-const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-const easeOut = t => 1 - Math.pow(1 - t, 3);
-const hashStr = s => { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return Math.abs(h); };
-const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+// 生成二维码
+const pageUrl = location.href + "#form";
+new QRCode(document.getElementById("qrcode"),{width:200,height:200,text:pageUrl});
 
-let records = [];
-let mode = 'cloud';
-let W = 0, H = 0;
-let modeStart = performance.now();
-let cloudLayout = [];
-let clusterLayout = [];
-let screenInited = false;
-let mobileInited = false;
-let rafId = null;
-let supabase = null;
-let realtimeChannel = null;
-
-/* 本地持久化 */
-function loadLocal() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    const arr = raw ? JSON.parse(raw) : [];
-    records = Array.isArray(arr) ? arr : [];
-  } catch (e) { records = []; }
+// 表单页面判断
+if(location.hash === "#form"){
+  document.querySelector(".main-page").style.display="none";
+  document.getElementById("formPage").style.display="block";
 }
-function saveLocal() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(records)); } catch (e) {} }
 
-/* 实时通信 */
-function initSupabase() {
-  if (supabase) return supabase;
-  if (typeof window.supabase === 'undefined' || typeof window.supabase.createClient !== 'function') {
-    console.warn('Supabase SDK 未加载');
-    return null;
+// 表单提交
+document.getElementById("submitFormBtn").onclick = async function(){
+  const name = document.getElementById("name").value.trim();
+  const t1 = document.getElementById("tag1").value;
+  const t2 = document.getElementById("tag2").value;
+  const t3 = document.getElementById("tag3").value;
+  if(!name || !t1 || !t2 || !t3){
+    alert("姓名和3个优势必须全部选择！");return;
   }
-  supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-  return supabase;
+  await ref.push({name,tags:[t1,t2,t3]});
+  alert("✅提交成功！回到大屏幕");
 }
 
-function connectRealtime(onMessage, onClear) {
-  const client = initSupabase();
-  if (!client) { updateConn('offline', 'SDK 加载失败'); return; }
+let studentData = [];
+let viewMode = "wordcloud"; // wordcloud / force
 
-  if (realtimeChannel) { try { client.removeChannel(realtimeChannel); } catch (e) {} realtimeChannel = null; }
+// 监听云端数据，实时刷新普通词云
+ref.on("value",snap=>{
+  const raw = snap.val();
+  studentData = raw ? Object.values(raw) : [];
+  if(viewMode === "wordcloud"){
+    renderWordCloud();
+  }
+})
 
-  realtimeChannel = client.channel(CHANNEL_NAME, { config: { broadcast: { ack: false, self: false } } });
-
-  realtimeChannel
-    .on('broadcast', { event: 'adv-submit' }, payload => {
-      const rec = payload?.payload;
-      if (rec && rec.name) onMessage(rec);
+// 渲染基础词云（只展示优势标签）
+function renderWordCloud(){
+  const countMap = {};
+  studentData.forEach(s=>{
+    s.tags.forEach(t=>{
+      countMap[t] = (countMap[t]||0)+1;
     })
-    .on('broadcast', { event: 'clear-all' }, () => { onClear(); })
-    .subscribe(status => {
-      if (status === 'SUBSCRIBED') updateConn('online', '已连接');
-      else if (status === 'CHANNEL_ERROR') updateConn('offline', '连接异常');
-      else if (status === 'TIMED_OUT') updateConn('offline', '超时');
-      else updateConn('connecting', '连接中');
-    });
+  })
+  const arr = Object.keys(countMap).map(k=>({text:k,weight:countMap[k]}));
+  WordCloud(document.getElementById("cloudCanvas"),{
+    list:arr,
+    gridSize:10,
+    weightFactor:20,
+    fontFamily:"Microsoft Yahei",
+    color:function(){
+      const c = ["#ffd02b","#44ee77","#ff6666","#55ddff","#ff88ee"];
+      return c[Math.floor(Math.random()*c.length)];
+    },
+    backgroundColor:"transparent",
+    click:function(item){
+      const tagName = item[0];
+      const tagMap = {};
+      studentData.forEach(s=>s.tags.forEach(t=>{
+        if(!tagMap[t]) tagMap[t]=[];
+        tagMap[t].push(s.name);
+      }))
+      document.getElementById("popTitle").innerText = `优势【${tagName}】学员：`;
+      document.getElementById("popList").innerText = tagMap[tagName].join("、");
+      document.getElementById("pop").style.display="block";
+    }
+  })
 }
 
-function updateConn(state, text) {
-  const badge = $('#connBadge');
-  const label = $('#connText');
-  if (badge && label) { badge.className = 'conn ' + state; label.textContent = text; }
-  const mStatus = $('#mStatus');
-  if (mStatus) {
-    if (state === 'online') mStatus.textContent = '✓ 已连接，提交后大屏即时更新';
-    else if (state === 'offline') mStatus.textContent = '⚠ ' + text + '，请刷新重试';
-    else mStatus.textContent = '正在连接实时服务…';
-  }
-}
-
-function sendAdv(rec) {
-  if (!realtimeChannel) { toast('尚未连接，请刷新重试'); return false; }
-  try { realtimeChannel.send({ type: 'broadcast', event: 'adv-submit', payload: rec }); return true; }
-  catch (e) { toast('发送失败，请重试'); return false; }
-}
-
-function sendClear() {
-  if (realtimeChannel) { try { realtimeChannel.send({ type: 'broadcast', event: 'clear-all', payload: {} }); } catch (e) {} }
-}
-
-/* 数据与渲染 */
-function upsertRecord(rec) {
-  const idx = records.findIndex(r => r.name === rec.name);
-  if (idx >= 0) records[idx] = { ...records[idx], ...rec, ts: Date.now() };
-  else records.push({ ...rec, ts: Date.now() });
-  saveLocal();
-  renderAll();
-}
-
-function clearAllData() { records = []; saveLocal(); renderAll(); }
-
-function renderAll() { updateStats(); buildLayout(); }
-
-function updateStats() {
-  const num = $('#statNum');
-  if (num) num.textContent = records.length;
-
-  const feed = $('#feed');
-  if (feed) {
-    const recent = [...records].sort((a, b) => (b.ts || 0) - (a.ts || 0)).slice(0, 8);
-    feed.innerHTML = recent.map(r => `
-      <div class="feed-item">
-        <span class="feed-name">${esc(r.name)}</span>
-        <span class="feed-adv">${esc((r.adv || []).join(' · '))}</span>
-      </div>`).join('');
-  }
-  const hint = $('#emptyHint');
-  if (hint) hint.style.display = records.length ? 'none' : 'flex';
-}
-
-/* 画布 */
-const canvas = document.getElementById('stageCanvas');
-const ctx = canvas.getContext('2d');
-const canvasWrap = document.getElementById('canvasWrap');
-
-function resize() {
-  if (!canvasWrap || canvasWrap.style.display === 'none') return;
-  const rect = canvasWrap.getBoundingClientRect();
-  W = Math.max(1, Math.round(rect.width));
-  H = Math.max(1, Math.round(rect.height));
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  canvas.width = Math.round(W * dpr);
-  canvas.height = Math.round(H * dpr);
-  canvas.style.width = W + 'px';
-  canvas.style.height = H + 'px';
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  buildLayout();
-}
-
-function buildCloudLayout() {
-  const freq = new Map();
-  records.forEach(r => (r.adv || []).forEach(a => {
-    const w = String(a || '').trim();
-    if (w) freq.set(w, (freq.get(w) || 0) + 1);
-  }));
-
-  const items = [...freq.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'zh'));
-  const prevMap = new Map(cloudLayout.map(w => [w.word, w]));
-  cloudLayout = [];
-
-  const n = items.length;
-  if (!n || W < 20 || H < 20) return;
-
-  const CELL = 24;
-  const gw = Math.max(1, Math.ceil(W / CELL));
-  const gh = Math.max(1, Math.ceil(H / CELL));
-  const grid = new Uint8Array(gw * gh);
-  const cx = W / 2, cy = H / 2;
-  const base = Math.min(W, H);
-  const maxFont = Math.max(26, Math.min(base * 0.155, 132));
-  const minFont = Math.max(13, maxFont * 0.21);
-  const now = performance.now();
-
-  items.forEach(([word, f], i) => {
-    const rank = n === 1 ? 1 : 1 - i / (n - 1);
-    const size = Math.round(minFont + (maxFont - minFont) * Math.pow(rank, 0.85));
-    ctx.font = `700 ${size}px ${FONT}`;
-    const tw = ctx.measureText(word).width;
-    const th = size * 1.16;
-    const pad = 7;
-    const bw = tw + pad * 2, bh = th + pad * 2;
-
-    let found = null;
-    let ang = -Math.PI / 2, rad = 0;
-
-    for (let k = 0; k < 2600; k++) {
-      const x = cx + rad * Math.cos(ang) * 1.75;
-      const y = cy + rad * Math.sin(ang);
-      const rx = x - bw / 2, ry = y - bh / 2;
-
-      if (rx >= 4 && ry >= 4 && rx + bw <= W - 4 && ry + bh <= H - 4) {
-        const gx0 = Math.max(0, Math.floor(rx / CELL)), gx1 = Math.min(gw - 1, Math.floor((rx + bw) / CELL));
-        const gy0 = Math.max(0, Math.floor(ry / CELL)), gy1 = Math.min(gh - 1, Math.floor((ry + bh) / CELL));
-        let free = true;
-        gxLoop: for (let gx = gx0; gx <= gx1; gx++) {
-          for (let gy = gy0; gy <= gy1; gy++) { if (grid[gy * gw + gx]) { free = false; break gxLoop; } }
-        }
-        if (free) {
-          for (let gx = gx0; gx <= gx1; gx++) for (let gy = gy0; gy <= gy1; gy++) grid[gy * gw + gx] = 1;
-          found = { x, y }; break;
-        }
+// 渲染力导向聚类图（标签为中心，名字环绕）
+function renderForceChart(){
+  const tagMap = {};
+  const nodes = [];
+  const links = [];
+  const tagSet = new Set();
+  studentData.forEach(s=>s.tags.forEach(t=>tagSet.add(t)));
+  Array.from(tagSet).forEach(t=>{
+    tagMap[t] = [];
+    nodes.push({id:t,type:"tag"});
+  })
+  studentData.forEach(s=>{
+    nodes.push({id:s.name,type:"name"});
+    s.tags.forEach(t=>{
+      tagMap[t].push(s.name);
+      links.push({source:t,target:s.name})
+    })
+  })
+  const svg = d3.select("#chart");
+  svg.selectAll("*").remove();
+  const width = svg.node().clientWidth;
+  const height = svg.node().clientHeight;
+  const simulation = d3.forceSimulation(nodes)
+    .force("link",d3.forceLink(links).id(d=>d.id).distance(80))
+    .force("charge",d3.forceManyBody().strength(-280))
+    .force("center",d3.forceCenter(width/2,height/2));
+  const link = svg.append("g").selectAll("line")
+    .data(links).enter().append("line").attr("class","link");
+  const text = svg.append("g").selectAll("text")
+    .data(nodes).enter().append("text")
+    .attr("class",d=>d.type==="tag"?"tag-node":"name-node")
+    .text(d=>d.id)
+    .on("click",(event,d)=>{
+      if(d.type==="tag"){
+        document.getElementById("popTitle").innerText = `优势【${d.id}】学员：`;
+        document.getElementById("popList").innerText = tagMap[d.id].join("、");
+        document.getElementById("pop").style.display="block";
       }
-      ang += 0.32; rad += 0.42 + rad * 0.009;
-    }
-
-    if (found) {
-      const prev = prevMap.get(word);
-      cloudLayout.push({
-        word, size, cx: found.x, cy: found.y, freq: f,
-        color: PALETTE[hashStr(word) % PALETTE.length],
-        birth: prev ? now - 5000 : now + i * 35
-      });
-    }
-  });
+    })
+  simulation.on("tick",()=>{
+    link.attr("x1",d=>d.source.x).attr("y1",d=>d.source.y)
+      .attr("x2",d=>d.target.x).attr("y2",d=>d.target.y);
+    text.attr("x",d=>d.x).attr("y",d=>d.y);
+  })
 }
 
-function buildClusterLayout() {
-  clusterLayout = [];
-  const n = records.length;
-  if (!n || W < 20 || H < 20) return;
-
-  const cols = Math.max(1, Math.ceil(Math.sqrt(n * W / H)));
-  const rows = Math.ceil(n / cols);
-  const cw = W / cols, ch = H / rows;
-  const unit = Math.min(cw, ch);
-  const R = unit * 0.31, nameSize = Math.max(12, Math.min(unit * 0.145, 40)), advSize = Math.max(9.5, Math.min(unit * 0.088, 24));
-
-  records.forEach((r, i) => {
-    clusterLayout.push({
-      cx: cw * (i % cols + 0.5), cy: ch * (Math.floor(i / cols) + 0.5),
-      R, nameSize, advSize, name: String(r.name || ''),
-      adv: (r.adv || []).filter(Boolean).slice(0, 3), phase: i * 1.13
-    });
-  });
-}
-
-function buildLayout() { if (mode === 'cloud') buildCloudLayout(); else buildClusterLayout(); }
-
-function drawCloud(now) {
-  ctx.clearRect(0, 0, W, H);
-  for (let i = 0; i < cloudLayout.length; i++) {
-    const w = cloudLayout[i], age = now - w.birth;
-    if (age < 0) continue;
-    const e = easeOut(Math.min(1, age / 520));
-    ctx.save();
-    ctx.globalAlpha = e;
-    ctx.translate(w.cx, w.cy);
-    ctx.scale(0.72 + 0.28 * e, 0.72 + 0.28 * e);
-    ctx.font = `700 ${w.size}px ${FONT}`;
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.shadowColor = w.color; ctx.shadowBlur = 16 * e; ctx.fillStyle = w.color;
-    ctx.fillText(w.word, 0, 0);
-    ctx.restore();
+// 切换到聚类组队视图
+document.getElementById("analyseBtn").onclick = function(){
+  if(studentData.length===0){alert("暂无学员提交数据");return;}
+  viewMode = "force";
+  document.getElementById("cloudCanvas").style.display = "none";
+  document.getElementById("chart").style.display = "block";
+  renderForceChart();
+  this.innerText = "🔙 返回词云视图";
+  this.onclick = function(){
+    viewMode = "wordcloud";
+    document.getElementById("cloudCanvas").style.display = "block";
+    document.getElementById("chart").style.display = "none";
+    renderWordCloud();
+    this.innerText = "✅ 开始分析（切换名字环绕图）";
+    this.onclick = arguments.callee.caller;
   }
 }
 
-function drawCluster(now) {
-  ctx.clearRect(0, 0, W, H);
-  const tt = now / 1000;
-  clusterLayout.forEach((c, i) => {
-    const e = easeOut(Math.max(0, Math.min(1, (now - modeStart - i * 55) / 420)));
-    if (e <= 0) return;
-    ctx.save(); ctx.globalAlpha = e;
-    ctx.beginPath(); ctx.arc(c.cx, c.cy, c.R, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(124,156,255,0.17)'; ctx.lineWidth = 1; ctx.stroke();
-    const ang0 = tt * 0.16 + c.phase;
-    c.adv.forEach((a, j) => {
-      const ang = ang0 + j * Math.PI * 2 / 3;
-      ctx.beginPath(); ctx.moveTo(c.cx, c.cy); ctx.lineTo(c.cx + Math.cos(ang) * c.R, c.cy + Math.sin(ang) * c.R);
-      ctx.strokeStyle = 'rgba(94,231,255,0.15)'; ctx.lineWidth = 1; ctx.stroke();
-    });
-    ctx.font = `800 ${c.nameSize}px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.shadowColor = 'rgba(124,156,255,0.95)'; ctx.shadowBlur = 20; ctx.fillStyle = '#ffffff';
-    ctx.fillText(c.name, c.cx, c.cy); ctx.shadowBlur = 0;
-    c.adv.forEach((a, j) => {
-      const ang = ang0 + j * Math.PI * 2 / 3;
-      const x = c.cx + Math.cos(ang) * c.R, y = c.cy + Math.sin(ang) * c.R;
-      ctx.font = `700 ${c.advSize}px ${FONT}`;
-      const tw = ctx.measureText(a).width;
-      const pw = tw + c.advSize * 1.25, ph = c.advSize * 2.0;
-      roundRect(ctx, x - pw / 2, y - ph / 2, pw, ph, ph / 2);
-      ctx.fillStyle = 'rgba(94,231,255,0.09)'; ctx.fill(); ctx.strokeStyle = 'rgba(94,231,255,0.36)'; ctx.lineWidth = 1; ctx.stroke();
-      ctx.fillStyle = PALETTE[hashStr(a) % PALETTE.length]; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText(a, x, y + 0.5);
-    });
-    ctx.restore();
-  });
+function closePop(){
+  document.getElementById("pop").style.display="none";
 }
 
-function roundRect(c, x, y, w, h, r) {
-  if (c.roundRect) { c.beginPath(); c.roundRect(x, y, w, h, r); return; }
-  c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath();
-}
-
-function startLoop() {
-  if (rafId) return;
-  const tick = now => {
-    rafId = requestAnimationFrame(tick);
-    if (!document.getElementById('app-screen').classList.contains('active')) return;
-    if (W < 5 || H < 5) return;
-    if (mode === 'cloud') drawCloud(now); else drawCluster(now);
-  };
-  rafId = requestAnimationFrame(tick);
-}
-
-/* 二维码 */
-function setupQR() {
-  const box = $('#qrcode');
-  if (!box) return;
-  const url = location.href.split('#')[0] + '#m';
-  const urlEl = $('#urlText');
-  if (urlEl) urlEl.textContent = url.replace(/^https?:\/\//, '').slice(0, 46);
-
-  if (typeof qrcode !== 'function') {
-    box.innerHTML = '<div class="qr-warn">二维码库加载失败<br>请按 Ctrl+F5 强制刷新</div>'; return;
+document.getElementById("resetBtn").onclick = async function(){
+  if(confirm("确定清空全部提交记录？")){
+    await ref.remove();
+    studentData = [];
+    viewMode = "wordcloud";
+    document.getElementById("cloudCanvas").style.display = "block";
+    document.getElementById("chart").style.display = "none";
+    renderWordCloud();
   }
-  try {
-    const qr = qrcode(0, 'M'); qr.addData(url); qr.make();
-    box.innerHTML = qr.createImgTag(6, 0);
-    const img = box.querySelector('img');
-    if (img) { img.style.width = '100%'; img.style.height = 'auto'; img.style.display = 'block'; }
-  } catch (e) { box.innerHTML = '<div class="qr-warn">二维码生成失败</div>'; }
-}
-
-/* 大屏交互 */
-function toggleMode() {
-  mode = mode === 'cloud' ? 'cluster' : 'cloud';
-  modeStart = performance.now();
-  $('#btnMode').textContent = mode === 'cloud' ? '🔀 名字环绕聚类' : '☁ 优势词云';
-  buildLayout();
-}
-
-function toggleFullscreen() {
-  if (!document.fullscreenElement) {
-    const el = document.documentElement;
-    (el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen || (() => {})).call(el);
-  } else {
-    (document.exitFullscreen || document.webkitExitFullscreen || (() => {})).call(document);
-  }
-}
-
-function clearAll() {
-  if (!records.length) { toast('当前没有数据'); return; }
-  if (!confirm(`确定清空全部 ${records.length} 位同学的数据吗？`)) return;
-  sendClear(); clearAllData(); toast('已清空');
-}
-
-function bindScreen() {
-  $('#btnMode').addEventListener('click', toggleMode);
-  $('#btnFull').addEventListener('click', toggleFullscreen);
-  $('#btnClear').addEventListener('click', clearAll);
-  document.addEventListener('fullscreenchange', () => {
-    const b = $('#btnFull');
-    if (b) b.textContent = document.fullscreenElement ? '⛶ 退出全屏' : '⛶ 全屏';
-  });
-  document.addEventListener('keydown', e => {
-    if (e.target && e.target.matches && e.target.matches('input,textarea')) return;
-    const k = (e.key || '').toLowerCase();
-    if (k === 'c') { e.preventDefault(); toggleMode(); }
-    else if (k === 'f') { e.preventDefault(); toggleFullscreen(); }
-  });
-  let rt;
-  new ResizeObserver(() => { clearTimeout(rt); rt = setTimeout(resize, 130); }).observe(canvasWrap);
-}
-
-function initScreen() {
-  if (!screenInited) {
-    screenInited = true; loadLocal(); setupQR(); bindScreen(); updateStats(); startLoop();
-  }
-  updateStats(); requestAnimationFrame(resize);
-  connectRealtime(rec => upsertRecord(rec), () => clearAllData());
-}
-
-/* 手机端 */
-let toastTimer = null;
-function toast(msg) {
-  const el = $('#toast');
-  if (!el) return;
-  el.textContent = msg; el.classList.add('show');
-  clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('show'), 1800);
-}
-
-function shakeField(id) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake');
-  setTimeout(() => el.classList.remove('shake'), 420);
-}
-
-function initMobile() {
-  if (mobileInited) return;
-  mobileInited = true;
-  const nameEl = $('#mName'), advEls = [$('#mA1'), $('#mA2'), $('#mA3')];
-  const formBox = $('#mForm'), successBox = $('#mSuccess');
-
-  connectRealtime(() => {}, () => {});
-
-  function doSubmit() {
-    const name = nameEl.value.trim();
-    if (!name) { shakeField('fName'); toast('请先填写姓名'); nameEl.focus(); return; }
-    const advs = advEls.map(e => e.value.trim().replace(/[，,、;；\/\s]+/g, '').slice(0, 10)).filter(Boolean);
-    if (!advs.length) { shakeField('fA1'); toast('至少填写 1 个优势'); advEls[0].focus(); return; }
-    
-    const rec = { id: uid(), name: name.slice(0, 12), adv: advs.slice(0, 3), ts: Date.now() };
-    if (!sendAdv(rec)) return;
-
-    $('#mSuccessText').innerHTML = `${esc(rec.name)}，你的优势<br><b style="color:#6a8bff">${esc(advs.join(' · '))}</b><br>已经出现在大屏上啦 🎉`;
-    formBox.style.display = 'none'; successBox.style.display = 'block';
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-
-  $('#mSubmit').addEventListener('click', doSubmit);
-  advEls.forEach((el, i) => {
-    el.addEventListener('keydown', e => {
-      if (e.key !== 'Enter') return;
-      if (i < 2) advEls[i + 1].focus(); else doSubmit();
-    });
-  });
-  nameEl.addEventListener('keydown', e => { if (e.key === 'Enter') advEls[0].focus(); });
-  $('#mAgain').addEventListener('click', () => {
-    nameEl.value = ''; advEls.forEach(e => e.value = '');
-    successBox.style.display = 'none'; formBox.style.display = 'block';
-    nameEl.focus(); window.scrollTo({ top: 0, behavior: 'smooth' });
-  });
-}
-
-/* 路由与启动 */
-function route() {
-  const h = (location.hash || '').toLowerCase();
-  const mobile = h === '#m' || h === '#mobile';
-  document.getElementById('app-screen').classList.toggle('active', !mobile);
-  document.getElementById('app-mobile').classList.toggle('active', mobile);
-  if (mobile) initMobile(); else initScreen();
-}
-window.addEventListener('hashchange', route);
-
-// 确保 DOM 加载完毕后执行
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', route);
-} else {
-  route();
 }
 </script>
 </body>
